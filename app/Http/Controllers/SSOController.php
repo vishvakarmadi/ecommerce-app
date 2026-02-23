@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Hash;
 
 class SSOController extends Controller
 {
-    /**
-     * Redirect to Foodpanda OAuth server
-     */
+    // redirect user to foodpanda for OAuth login
     public function redirectToFoodpanda(Request $request)
     {
         $state = Str::random(40);
@@ -29,22 +27,20 @@ class SSOController extends Controller
         return redirect(env('FOODPANDA_URL') . '/oauth/authorize?' . $query);
     }
 
-    /**
-     * Handle callback from Foodpanda OAuth server
-     */
+    // handle callback after user authorizes on foodpanda
     public function handleCallback(Request $request)
     {
-        // Verify state
+        // check state matches
         if ($request->state !== $request->session()->get('oauth_state')) {
-            return redirect('/')->withErrors(['error' => 'Invalid state parameter']);
+            return redirect('/')->withErrors(['error' => 'Invalid state']);
         }
 
         if ($request->has('error')) {
-            return redirect('/')->withErrors(['error' => 'Authorization was denied']);
+            return redirect('/')->withErrors(['error' => 'Authorization denied']);
         }
 
-        // Exchange authorization code for access token
         try {
+            // exchange code for token
             $response = Http::post(env('FOODPANDA_URL') . '/oauth/token', [
                 'grant_type' => 'authorization_code',
                 'code' => $request->code,
@@ -54,23 +50,23 @@ class SSOController extends Controller
             ]);
 
             if ($response->failed()) {
-                return redirect('/')->withErrors(['error' => 'Failed to get access token']);
+                return redirect('/')->withErrors(['error' => 'Token exchange failed']);
             }
 
             $tokenData = $response->json();
 
-            // Get user info using access token
+            // get user info from foodpanda
             $userResponse = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $tokenData['access_token'],
             ])->get(env('FOODPANDA_URL') . '/api/user');
 
             if ($userResponse->failed()) {
-                return redirect('/')->withErrors(['error' => 'Failed to get user info']);
+                return redirect('/')->withErrors(['error' => 'Could not get user info']);
             }
 
             $userData = $userResponse->json();
 
-            // Find or create user locally
+            // create or update user in our db
             $user = User::updateOrCreate(
                 ['email' => $userData['email']],
                 [
@@ -79,29 +75,24 @@ class SSOController extends Controller
                 ]
             );
 
-            // Store token in session
+            // save token and login
             $request->session()->put('foodpanda_token', $tokenData['access_token']);
-
-            // Login user
             Auth::login($user);
             $request->session()->regenerate();
 
-            return redirect()->route('dashboard')->with('success', 'Logged in via Foodpanda SSO!');
+            return redirect()->route('dashboard')->with('success', 'Logged in via Foodpanda!');
 
         } catch (\Exception $e) {
-            return redirect('/')->withErrors(['error' => 'SSO Error: ' . $e->getMessage()]);
+            return redirect('/')->withErrors(['error' => 'SSO failed: ' . $e->getMessage()]);
         }
     }
 
-    /**
-     * Logout from both systems
-     */
     public function logout(Request $request)
     {
         $request->session()->forget('foodpanda_token');
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/')->with('success', 'Logged out successfully');
+        return redirect('/')->with('success', 'Logged out');
     }
 }

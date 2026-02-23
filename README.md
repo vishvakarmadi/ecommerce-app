@@ -1,76 +1,65 @@
 # Ecommerce App (SSO Client)
 
-## Developer: Aditya Vishvakarma
-
----
-
-## About
-
-Ecommerce application that uses **Foodpanda SSO** for authentication. Users login through the Foodpanda OAuth2 server — no separate registration needed.
+This is a Laravel app that uses Foodpanda as its login provider via OAuth2 SSO.
+Users don't register here — they login through Foodpanda and get auto-authenticated.
 
 ## How SSO Works
 
-1. User clicks **"Login with Foodpanda"** on the welcome page
-2. Gets redirected to the Foodpanda app's OAuth authorization page
-3. User logs in on Foodpanda and clicks **Authorize**
-4. Foodpanda sends back an authorization code
+1. User visits ecommerce app and clicks "Login with Foodpanda"
+2. They get redirected to Foodpanda's login page
+3. After logging in on Foodpanda, user clicks "Authorize"
+4. Foodpanda sends an auth code back to ecommerce app
 5. Ecommerce app exchanges the code for an access token
-6. Fetches user info from Foodpanda using the token
-7. Creates/updates the user locally and logs them in
+6. It fetches user info using the token, creates/updates the local user, and logs them in
+
+This is standard OAuth2 Authorization Code flow.
 
 ## Tech Stack
 
-- Laravel 11 (PHP 8.2+)
-- MySQL
+- Laravel 11
 - Bootstrap 5
+- MySQL
 
 ## Setup
 
 ```bash
-# clone and install
-git clone https://github.com/vishvakarmadi/ecommerce-app.git
-cd ecommerce-app
 composer install
-
-# configure
 cp .env.example .env
 php artisan key:generate
 ```
 
-Update `.env` with:
+Update `.env` with your database credentials:
 ```
-DB_DATABASE=ecommerce_db
-DB_USERNAME=root
-DB_PASSWORD=
+DB_DATABASE=your_db
+DB_USERNAME=your_user
+DB_PASSWORD=your_pass
+```
 
+Also set the Foodpanda SSO config in `.env`:
+```
+FOODPANDA_URL=http://localhost:8000
 FOODPANDA_CLIENT_ID=ecommerce-client
 FOODPANDA_CLIENT_SECRET=secret123abc
 FOODPANDA_REDIRECT_URI=http://localhost:8001/sso/callback
-FOODPANDA_URL=http://localhost:8000
 ```
 
+Run migrations:
 ```bash
-# create database and run migrations
 php artisan migrate
+```
 
-# start server on port 8001
+Start the server:
+```bash
 php artisan serve --port=8001
 ```
 
-> **Note:** The Foodpanda app must be running on port 8000 for SSO to work.
+## Login
 
-## Project Structure
+Go to http://localhost:8001, click "Login with Foodpanda".
+Use the demo credentials on Foodpanda: `test@example.com` / `12345678`
 
-```
-app/
-├── Http/Controllers/
-│   └── SSOController.php      # handles OAuth flow
-├── Models/
-│   └── User.php
-resources/views/
-├── layouts/app.blade.php       # main layout
-├── welcome.blade.php           # landing page with SSO button
-└── dashboard.blade.php         # post-login dashboard
-routes/
-└── web.php                     # SSO routes
-```
+## Live Demo
+
+- URL: https://ecommerce-app.kisusoft.com
+- Login via: https://foodpanda-app.kisusoft.com
+- Credentials: test@example.com / 12345678

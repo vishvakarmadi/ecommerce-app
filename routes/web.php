@@ -12,6 +12,9 @@ Route::get('/', function () {
 })->name('home');
 
 // SSO Routes
+Route::get('/login', function () {
+    return view('welcome');
+})->name('login');
 Route::get('/sso/foodpanda', [SSOController::class, 'redirectToFoodpanda'])->name('sso.foodpanda');
 Route::get('/sso/callback', [SSOController::class, 'handleCallback'])->name('sso.callback');
 
